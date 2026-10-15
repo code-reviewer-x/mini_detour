@@ -1,7 +1,21 @@
-# Implementation Plans
+# Plan Lifecycle
 
-This directory holds validated Markdown plans for future implementation work. Plan files are merged into local
-`develop` before any Developer or Reviewer is assigned, so each implementation worktree contains the approved plan.
+This directory contains the plan template, lifecycle rules, and three directories for plan files. A plan's directory
+is its canonical lifecycle state; plan files do not contain a `Status` field. The Lead moves plan files between
+directories with Git so every transition is recorded.
+
+## Plan directories
+
+- `PENDING_PLANS/`: new drafts and plans awaiting user validation. No Developer starts work from a plan in this
+  directory.
+- `VALIDATED_PLANS/`: plans whose content the user approved. They may be waiting for implementation, in
+  implementation or review, or awaiting authorized local integration into `develop`.
+- `FINISHED_PLANS/`: plans whose implementation the Developer reports complete, whose changes the Reviewer approves,
+  and whose completion the Lead confirms after local integration into `develop`.
+
+Moving a plan to `FINISHED_PLANS/` records completion in the local repository; it does not mean the branch was pushed
+or a release was published. If local integration is not authorized or cannot proceed, keep the plan in
+`VALIDATED_PLANS/` and track `Awaiting Integration` in the execution handoff.
 
 ## Plan proposal workflow
 
@@ -12,24 +26,25 @@ This directory holds validated Markdown plans for future implementation work. Pl
    Lead synchronizes `develop` again, checks whether relevant repository facts changed, and creates one plan-proposal
    branch and worktree per plan. Name each branch `docs_plan-<type>-<plan-name>`; for example,
    `docs_plan-feature-add-arm64-support`.
-3. The Lead gives the Planner one reviewed draft and its proposal worktree. The Planner materializes exactly one plan
-   file under `AGENTS/PLANS/` with `Draft` status and makes no code changes. The Lead verifies the file preserves the
-   reviewed meaning, then sets complete files to `Awaiting Validation` and presents each plan to the user.
-4. At the same time, the Lead asks which plans, if any, the user wants implemented, whether independent plans should
-   run one at a time or in parallel, and whether to authorize local integration of reviewed code into `develop`.
-   Validating a plan's content authorizes merging only that plan's proposal; it does not authorize implementation or
-   code integration.
-5. If the user requests plan changes, the Lead resets the affected plan to `Draft` and returns it to the Planner in
-   its proposal worktree. The Lead reviews the revised file, sets it to `Awaiting Validation`, and repeats user
-   validation. Merge only proposals the user validated; keep rejected or pending proposals unmerged.
-6. After the user validates a plan, the Lead marks its file `Validated`, commits only that file on its proposal branch,
-   synchronizes `develop` again, and merges that proposal branch into local `develop`. If resolving a merge conflict
-   would change validated requirements, the Lead obtains user validation for the revised plan before merging.
-7. Only after a plan file is present in `develop` may the Lead create that plan's implementation branch and worktree.
-   This makes the approved plan available to the Developer and Reviewer from the branch being changed.
+3. The Lead gives the Planner one reviewed draft and its proposal worktree. The Planner creates exactly one plan file
+   under `PENDING_PLANS/` using [`TEMPLATE.md`](TEMPLATE.md). The Planner makes no code changes. The Lead checks that
+   the file preserves the reviewed meaning and presents it to the user for content validation.
+4. Separately ask which plans, if any, the user wants implemented, whether independent plans should run one at a time
+   or in parallel, and whether to authorize local integration of reviewed implementation branches into `develop`.
+   Content validation authorizes merging only that plan's proposal; it does not authorize implementation or code
+   integration.
+5. If the user requests changes, keep the plan in `PENDING_PLANS/`, return it to the Planner in its proposal worktree,
+   review the revision, and ask the user to validate it again. Do not merge a rejected or unvalidated proposal into
+   `develop`; keep its proposal branch unmerged as the review record.
+6. After the user validates a plan, move it from `PENDING_PLANS/` to `VALIDATED_PLANS/` with `git mv`. Commit that
+   move on the proposal branch, synchronize `develop` again, and merge the proposal branch into local `develop`. The
+   approved plan is available to implementation worktrees only after this merge. If resolving a merge conflict would
+   change the validated content, obtain user validation for the revised content before merging.
+7. Only after the plan file is present in `VALIDATED_PLANS/` on `develop` may the Lead create its implementation
+   branch and worktree. The Developer and Reviewer use the plan from that directory.
 
-If `develop` changes while the user is reviewing a proposal, synchronize it before the plan merge. If synchronization
-or the merge conflicts, stop and resolve the conflict before creating implementation worktrees.
+If `develop` changes while the user is reviewing a proposal, synchronize it before merging the plan. If
+synchronization or the merge conflicts, stop and resolve the conflict before creating implementation worktrees.
 
 ## Plan files
 
@@ -48,27 +63,21 @@ or the merge conflicts, stop and resolve the conflict before creating implementa
   details as assumptions or questions.
 - Split work into separate plans only when each can be reviewed on its own. If one plan depends on another, state the
   dependency by plan ID and explain what must be complete first.
-- Start each implementation branch from the current local `develop`, which must include the validated plan files and
-  all integrated prerequisites. Do not base a branch on another unmerged implementation branch.
-- After a plan is `Validated`, do not change its requirements or acceptance criteria in an implementation branch. A
-  scope change requires a revised plan proposal, user validation, and merge into `develop` before implementation
-  resumes.
+- Start each implementation branch from current local `develop`, which must include the validated plan file and all
+  integrated prerequisites. Do not base a branch on another unmerged implementation branch.
+- After a plan enters `VALIDATED_PLANS/`, do not change its requirements or acceptance criteria in an implementation
+  branch. A scope change requires a revised proposal, user validation, and merge into `develop` before implementation
+  resumes. For a revision, create a proposal branch from current `develop`, move the plan from `VALIDATED_PLANS/` to
+  `PENDING_PLANS/` in that branch, and revise it there. The copy in `develop` remains unchanged until the revised
+  proposal is approved and merged back into `VALIDATED_PLANS/`.
 - Do not include credentials, private data, or unrelated conversation history.
 
-## Plan document status
+## Execution status
 
-The `Status` field in the plan file tracks plan validation only:
+The Lead tracks execution status separately in the task handoff; directory location tracks plan lifecycle. Use these
+execution states:
 
-- `Draft`: the Planner is preparing the plan; it has not been presented to the user.
-- `Awaiting Validation`: the Lead has checked the plan and asked the user to validate its content.
-- `Validated`: the user has approved the plan content. This alone does not authorize implementation. The Lead assigns
-  no Developer until the plan file is confirmed present in local `develop` and the user selects the plan for
-  execution.
-
-The Lead tracks execution status separately in the task handoff; do not edit a validated plan to record transient
-execution state. Use these execution states:
-
-- `Not Selected`: the plan is validated, but the user has not selected it for implementation.
+- `Not Selected`: the user approved the plan content, but has not selected it for implementation.
 - When the user selects a plan, transition from `Not Selected` to `Ready` if all prerequisites are integrated. If a
   prerequisite is not yet integrated, use `Blocked` with `Ready` as the resume state.
 - `Ready`: the user selected the plan for implementation and all prerequisites are integrated. Transition to
@@ -91,16 +100,20 @@ execution state. Use these execution states:
   unverified work as reviewed or integrated.
 
 Plan-content validation, implementation authorization, and local integration authorization are separate decisions.
-The Lead records each decision in the execution handoff and never infers one from another. The plan file is
-read-only after validation; execution-state changes belong in the handoff, not in the approved plan.
+The Lead records each decision in the execution handoff and never infers one from another.
 
-## Implementation integration
+## Completion and archival
 
-- The Developer branch starts from `develop` after the validated plan is merged there. The Lead records the plan path
-  in the assignment; the Developer and Reviewer read that file from their assigned worktrees.
-- After Reviewer approval, the Lead synchronizes `develop` and merges the implementation branch locally only if the
-  user authorized that integration. If not, keep the branch in `Awaiting Integration` and ask the user.
-- If integration produces code conflicts, return the branch to the Developer for resolution and verification. The
-  Reviewer checks the resolved diff again before the Lead completes the merge.
-- Local integration does not authorize a push or release. Release promotion from `develop` to `master` or `main` is a
-  separate version-release action.
+- The Developer reports that every plan acceptance criterion is met and provides verification evidence.
+- The Reviewer explicitly approves the implementation with no open `Required` findings and confirms the acceptance
+  evidence supports the plan.
+- The Lead independently checks the report and review, confirms the acceptance criteria are met, and locally
+  integrates the reviewed implementation branch into `develop`.
+- Only after all three agree and integration succeeds does the Lead create a lifecycle branch and worktree from the
+  updated local `develop`, named `docs_finish-<type>-<plan-name>`. Move the plan with `git mv` from
+  `VALIDATED_PLANS/` to `FINISHED_PLANS/`, commit only the move on that branch, synchronize `develop`, and merge the
+  lifecycle branch into local `develop`. Do not change the plan content during archival. This branch keeps the rule
+  that task changes are merged into `develop`, not committed directly on it.
+- If implementation changes are required after completion review, leave the plan in `VALIDATED_PLANS/`; return it to
+  the Developer and Reviewer cycle. If integration is unauthorized or blocked, leave it in `VALIDATED_PLANS/` and
+  track the execution status separately.

@@ -1,7 +1,6 @@
 # <Plan title>
 
 - Plan ID: `<type>_<plan-name>`
-- Status: `Draft`
 - Type: `<fix|feature|docs>`
 
 ## User goal

@@ -41,21 +41,22 @@ integrates approved changes into local `develop`, and reports decisions and resu
    the Planner to reassess the affected repository facts. Then create one plan-proposal branch and worktree per plan,
    from current `develop`. Name each branch `docs_plan-<type>-<plan-name>`; for example,
    `docs_plan-feature-add-arm64-support`. Give the Planner the corresponding reviewed draft and worktree to
-   materialize exactly one plan file under `AGENTS/PLANS/` in `Draft` status.
-6. Review each materialized file against its reviewed draft and the plan rules. Set complete files to
-   `Awaiting Validation` before showing them to the user. If materialized content changed in meaning, return it to the
-   Planner for correction; do not present it as the reviewed draft.
+   materialize exactly one plan file under `AGENTS/PLANS/PENDING_PLANS/`.
+6. Review each materialized file against its reviewed draft and the plan rules. Keep it in `PENDING_PLANS/` while
+   showing it to the user for content validation. If materialized content changed in meaning, return it to the Planner
+   for correction; do not present it as the reviewed draft.
 7. Present each plan to the user for content validation. Separately ask which validated plans, if any, to execute now,
    whether to run independent plans in parallel or one at a time, and whether to authorize local integration of
    reviewed implementation branches into `develop`. Plan-content validation authorizes merging only that plan's
    proposal; it does not authorize implementation or code integration.
-8. If the user requests plan changes, reset the affected files to `Draft`, return them to the Planner in their
+8. If the user requests plan changes, keep the affected files in `PENDING_PLANS/`, return them to the Planner in their
    proposal worktrees, and repeat review. Merge only plan proposals whose contents the user validated; leave rejected
    or pending proposals unmerged.
-9. After content validation, mark each approved plan file `Validated`, commit only that file on its proposal branch,
-   synchronize `develop` again, and merge each approved proposal branch into local `develop`. The validated plan files
-   are now available to implementation worktrees. If a merge conflict would require changing validated requirements,
-   stop and ask the user to validate the revised plan content before merging it.
+9. After content validation, move each approved plan file from `PENDING_PLANS/` to `VALIDATED_PLANS/` with `git mv`.
+   Commit only that file move on its proposal branch, synchronize `develop` again, and merge each approved proposal
+   branch into local `develop`. The validated plan files are now available to implementation worktrees. If a merge
+   conflict would require changing validated requirements, stop and ask the user to validate the revised plan content
+   before merging it.
 10. If the user did not select a plan for execution, report the validated plans and stop. Otherwise, process selected
     plans in the agreed order. Create one new implementation branch and one isolated worktree per plan only when its
     prerequisites are integrated into `develop`; defer dependent plans until then. If a selected plan is waiting on a
@@ -71,13 +72,20 @@ integrates approved changes into local `develop`, and reports decisions and resu
 14. After Reviewer approval, set the execution status to `Reviewed`. If local integration was authorized, synchronize
     `develop` and merge the reviewed implementation branch into it; then set the status to `Integrated`. Otherwise,
     set it to `Awaiting Integration` and ask the user before merging.
-15. If an implementation merge conflicts, set the execution status to `Blocked` with `In Progress` as its resume
+15. After the Developer reports all acceptance criteria complete, the Reviewer explicitly approves with no open
+    `Required` findings, and the Lead independently confirms the evidence, finish the plan only after its implementation
+    branch is integrated into local `develop`. Synchronize `develop`, create a lifecycle branch and worktree from it,
+    named `docs_finish-<type>-<plan-name>`, and move the plan with `git mv` from `VALIDATED_PLANS/` to
+    `FINISHED_PLANS/`. Commit only that move on the lifecycle branch, synchronize `develop` again, and merge the
+    lifecycle branch into local `develop`. If integration is not authorized or cannot proceed, leave the plan in
+    `VALIDATED_PLANS/`.
+16. If an implementation merge conflicts, set the execution status to `Blocked` with `In Progress` as its resume
     state. Do not resolve code conflicts silently. Return the branch to the Developer for resolution and verification;
     when resubmitted, set `In Review` and have the Reviewer inspect the resolved diff again. Retry integration only
     after the Reviewer approves the resolved diff.
-16. Report validated plans, implementation results, statuses, branch and worktree locations, local merges, test
-    commands and results, and any blocked or unverified acceptance criteria to the user. A local merge does not mean
-    that changes were pushed or published.
+17. Report validated and finished plans, implementation results, statuses, branch and worktree locations, local merges,
+    test commands and results, and any blocked or unverified acceptance criteria to the user. A local merge does not
+    mean that changes were pushed or published.
 
 ## Delegation context
 
@@ -88,10 +96,10 @@ that role. Do not send the complete set of role files.
   `AGENTS/PLANS/README.md` plus `TEMPLATE.md`; require a read-only repository inspection and complete Markdown drafts.
 - Planner (materialization or revision pass): provide `AGENTS/ROLES/PLANNER.md`, one reviewed draft or its requested
   revisions, that plan's proposal worktree, and `AGENTS/PLANS/README.md` plus `TEMPLATE.md`.
-- Developer: provide `AGENTS/ROLES/DEVELOPER.md`, the plan path in the assigned worktree, branch and base details, and
-  `AGENTS/CODING.md`.
-- Reviewer: provide `AGENTS/ROLES/REVIEWER.md`, the same plan path, the complete diff and its base revision, and
-  `AGENTS/CODING.md`.
+- Developer: provide `AGENTS/ROLES/DEVELOPER.md`, the plan path under `AGENTS/PLANS/VALIDATED_PLANS/` in the
+  assigned worktree, branch and base details, and `AGENTS/CODING.md`.
+- Reviewer: provide `AGENTS/ROLES/REVIEWER.md`, the same validated plan path, the complete diff and its base revision,
+  and `AGENTS/CODING.md`.
 
 ## Boundaries
 

@@ -5,8 +5,8 @@ The Reviewer independently checks one Developer's changes against the approved p
 ## Review procedure
 
 1. Read the root instructions, this role file, the plan at the path supplied by the Lead, the complete diff against
-   its assigned base, and relevant source context in `AGENTS/CODING.md`. Confirm the plan exists in the worktree and
-   has status `Validated`; if it does not, stop and report the missing handoff to the Lead.
+   its assigned base, and relevant source context in `AGENTS/CODING.md`. Confirm the plan exists under
+   `AGENTS/PLANS/VALIDATED_PLANS/` in the worktree; if it does not, stop and report the missing handoff to the Lead.
 2. Check correctness, acceptance criteria, scope, compatibility, error handling, resource cleanup, and tests. Look
    for regressions and missing cases supported by the plan and repository behavior.
 3. Report findings before general commentary. Classify each as `Required` (must be resolved before approval) or
